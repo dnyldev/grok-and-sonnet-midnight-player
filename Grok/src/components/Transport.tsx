@@ -1,0 +1,226 @@
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
+import { FastForward, Pause, Play, Rewind } from "lucide-react";
+import { NumberTicker } from "@/components/ui/NumberTicker";
+import { SPRING_PRESS } from "@/lib/ease";
+import { formatTime } from "@/lib/utils";
+import { TOTAL_BEATS, transposeChord } from "@/data/song";
+
+export type PanelId = "chords" | "lyrics";
+export type DockId = PanelId | "mixer";
+
+interface TransportProps {
+  playing: boolean;
+  beat: number;
+  bpm: number;
+  semitones: number;
+  secPerBeat: number;
+  onToggle: () => void;
+  onSeek: (beat: number) => void;
+  onSkip: (seconds: number) => void;
+  onOpenTempo: () => void;
+  onOpenKey: () => void;
+}
+
+export function Transport({
+  playing,
+  beat,
+  bpm,
+  semitones,
+  secPerBeat,
+  onToggle,
+  onSeek,
+  onSkip,
+  onOpenTempo,
+  onOpenKey,
+}: TransportProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [scrubbing, setScrubbing] = useState(false);
+  const [ghostBeat, setGhostBeat] = useState(0);
+
+  const progress = useMotionValue(0);
+  const smooth = useSpring(progress, { stiffness: 300, damping: 40, mass: 0.4 });
+  const shown = scrubbing ? progress : smooth;
+  const fillScale = useTransform(shown, (v) => Math.min(1, Math.max(0, v)));
+  const knobLeft = useTransform(fillScale, (v) => `${v * 100}%`);
+
+  useEffect(() => {
+    if (!scrubbing) progress.set(beat / TOTAL_BEATS);
+  }, [beat, scrubbing, progress]);
+
+  const beatFromPointer = (clientX: number) => {
+    const el = trackRef.current;
+    if (!el) return 0;
+    const rect = el.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    return ratio * TOTAL_BEATS;
+  };
+
+  const playedBeat = scrubbing ? ghostBeat : beat;
+
+  return (
+    <div
+      className="flex flex-col gap-3 px-4 pt-2"
+      style={{ paddingBottom: "max(14px, calc(var(--safe-b) + 8px))" }}
+    >
+      <div className="flex items-center gap-3">
+        <span className="w-9 shrink-0 font-mono text-[12px] tabular-nums text-[var(--fg-2)]">
+          {formatTime(playedBeat * secPerBeat)}
+        </span>
+        <div
+          ref={trackRef}
+          role="slider"
+          aria-label="Playhead"
+          aria-valuemin={0}
+          aria-valuemax={Math.round(TOTAL_BEATS)}
+          aria-valuenow={Math.round(playedBeat)}
+          tabIndex={0}
+          className="group relative h-11 flex-1 cursor-pointer touch-none"
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setScrubbing(true);
+            const b = beatFromPointer(e.clientX);
+            setGhostBeat(b);
+            progress.set(b / TOTAL_BEATS);
+          }}
+          onPointerMove={(e) => {
+            if (!scrubbing) return;
+            const b = beatFromPointer(e.clientX);
+            setGhostBeat(b);
+            progress.set(b / TOTAL_BEATS);
+          }}
+          onPointerUp={(e) => {
+            const b = beatFromPointer(e.clientX);
+            setScrubbing(false);
+            onSeek(b);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft") onSkip(-5);
+            if (e.key === "ArrowRight") onSkip(5);
+          }}
+        >
+          <div
+            className="absolute top-1/2 h-[4px] w-full -translate-y-1/2 overflow-hidden rounded-full"
+            style={{ background: "var(--fill)" }}
+          >
+            <motion.div
+              className="h-full w-full origin-left rounded-full"
+              style={{ scaleX: fillScale, background: "var(--fg)" }}
+            />
+          </div>
+          <motion.span
+            className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{ left: knobLeft, background: "var(--fg)" }}
+            animate={{ opacity: scrubbing ? 1 : 0, scale: scrubbing ? 1.2 : 1 }}
+            transition={{ duration: 0.16 }}
+          />
+        </div>
+        <span className="w-9 shrink-0 text-right font-mono text-[12px] tabular-nums text-[var(--fg-2)]">
+          {formatTime(TOTAL_BEATS * secPerBeat)}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pt-0.5">
+        <CornerStat
+          className="justify-self-start"
+          align="start"
+          aria-label="Tempo"
+          value={
+            <NumberTicker
+              value={bpm}
+              duration={0.5}
+              className="text-[24px] font-semibold leading-none tracking-[-0.01em] tabular-nums"
+            />
+          }
+          label="BPM"
+          onClick={onOpenTempo}
+        />
+
+        <div className="flex items-center gap-4">
+          <motion.button
+            type="button"
+            aria-label="Back 5 seconds"
+            onClick={() => onSkip(-5)}
+            whileTap={{ scale: 0.9 }}
+            transition={SPRING_PRESS}
+            className="grid size-12 place-items-center rounded-full text-[var(--fg)] transition-colors hover:bg-[var(--fill)]"
+          >
+            <Rewind className="size-[26px]" fill="currentColor" strokeWidth={0.5} />
+          </motion.button>
+
+          <motion.button
+            type="button"
+            aria-label={playing ? "Pause" : "Play"}
+            onClick={onToggle}
+            whileTap={{ scale: 0.92 }}
+            transition={SPRING_PRESS}
+            className="relative grid size-[64px] place-items-center rounded-full"
+            style={{ background: "var(--fg)", color: "var(--bg)", boxShadow: "var(--shadow-float)" }}
+          >
+            {playing ? (
+              <Pause className="size-[24px]" fill="currentColor" />
+            ) : (
+              <Play className="size-[24px] translate-x-[1.5px]" fill="currentColor" />
+            )}
+          </motion.button>
+
+          <motion.button
+            type="button"
+            aria-label="Forward 5 seconds"
+            onClick={() => onSkip(5)}
+            whileTap={{ scale: 0.9 }}
+            transition={SPRING_PRESS}
+            className="grid size-12 place-items-center rounded-full text-[var(--fg)] transition-colors hover:bg-[var(--fill)]"
+          >
+            <FastForward className="size-[26px]" fill="currentColor" strokeWidth={0.5} />
+          </motion.button>
+        </div>
+
+        <CornerStat
+          className="justify-self-end"
+          align="end"
+          aria-label="Key"
+          value={
+            <span className="text-[24px] font-semibold leading-none tracking-[-0.01em]">
+              {transposeChord("A", semitones)}m
+            </span>
+          }
+          label="KEY"
+          onClick={onOpenKey}
+        />
+      </div>
+    </div>
+  );
+}
+
+function CornerStat({
+  value,
+  label,
+  align,
+  onClick,
+  className,
+  "aria-label": ariaLabel,
+}: {
+  value: ReactNode;
+  label: string;
+  align: "start" | "end";
+  onClick: () => void;
+  className?: string;
+  "aria-label"?: string;
+}) {
+  return (
+    <motion.button
+      type="button"
+      aria-label={ariaLabel}
+      onClick={onClick}
+      whileTap={{ scale: 0.94 }}
+      transition={SPRING_PRESS}
+      className={`flex min-h-11 flex-col justify-center gap-1.5 ${align === "start" ? "items-start" : "items-end"} ${className ?? ""}`}
+    >
+      <span className="flex h-[1.1em] items-center text-[24px] font-semibold leading-none tracking-[-0.01em] tabular-nums text-[var(--fg)]">
+        {value}
+      </span>
+      <span className="text-[11px] font-medium uppercase leading-none tracking-[0.08em] text-[var(--fg-3)]">{label}</span>
+    </motion.button>
+  );
+}

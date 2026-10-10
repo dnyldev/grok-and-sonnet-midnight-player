@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--sheet);
+  --color-foreground: var(--fg);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--fg);
+  --color-muted: var(--fill);
+  --color-muted-foreground: var(--fg-2);
+  --color-primary: var(--fg);
+  --color-primary-foreground: var(--bg);
+  --color-border: var(--hairline);
+  --color-ring: var(--fg-3);
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+:root {
+  --bg: #0b0b0c;
+  --sheet: #111113;
+  --surface: #18181b;
+  --surface-2: #1f1f23;
+  --fg: #f4f4f5;
+  --fg-2: #a1a1aa;
+  --fg-3: #71717a;
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-2: rgba(255, 255, 255, 0.14);
+  --fill: rgba(255, 255, 255, 0.06);
+  --fill-strong: rgba(255, 255, 255, 0.1);
+  --glass: rgba(17, 17, 19, 0.78);
+  --scrim: rgba(0, 0, 0, 0.52);
+  --accent: #c4b59a;
+  --accent-soft: rgba(196, 181, 154, 0.14);
+  --success: #9aa88a;
+  --danger: #c4a0a0;
+  --shadow-float: 0 18px 50px -24px rgba(0, 0, 0, 0.7);
+  --shadow-sheet: 0 -24px 80px -28px rgba(0, 0, 0, 0.8);
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  color-scheme: dark;
+}
+
+[data-theme="day"] {
+  --bg: #ecebe7;
+  --sheet: #f7f6f2;
+  --surface: #ffffff;
+  --surface-2: #f1f0eb;
+  --fg: #161615;
+  --fg-2: #6b6a66;
+  --fg-3: #9a9892;
+  --hairline: rgba(22, 22, 21, 0.1);
+  --hairline-2: rgba(22, 22, 21, 0.16);
+  --fill: rgba(22, 22, 21, 0.05);
+  --fill-strong: rgba(22, 22, 21, 0.08);
+  --glass: rgba(247, 246, 242, 0.82);
+  --scrim: rgba(22, 22, 21, 0.28);
+  --accent: #8a7a5c;
+  --accent-soft: rgba(138, 122, 92, 0.12);
+  --success: #5f6d52;
+  --danger: #8a5a5a;
+  --shadow-float: 0 18px 44px -24px rgba(22, 22, 21, 0.28);
+  --shadow-sheet: 0 -20px 60px -28px rgba(22, 22, 21, 0.22);
+  color-scheme: light;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01" 1, "cv11" 1;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--fg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 3px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: var(--hairline-2) transparent;
+}
+.scroll-area::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scroll-area::-webkit-scrollbar-thumb {
+  background: var(--hairline-2);
+  border-radius: 999px;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hairline {
+  box-shadow: inset 0 0 0 0.5px var(--hairline);
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.86);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+.shimmer {
+  background-image: linear-gradient(90deg, transparent 0%, var(--fill-strong) 45%, transparent 90%);
+  background-size: 220% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes log-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
